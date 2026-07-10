@@ -1,112 +1,84 @@
 import SwiftUI
-import Combine
 
 struct ContentView: View {
-    @State private var score = 0
-    @State private var timeRemaining = 10
-    @State private var gameStarted = false
-    @State private var gameOver = false
-    @State private var highScore = UserDefaults.standard.integer(forKey: "HighScore")
-    
-
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
     var body: some View {
-        VStack(spacing: 30) {
+        NavigationStack {
+            ZStack {
+                LinearGradient(
+                    colors: [Color.indigo.opacity(0.9), Color.black],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-            Text("Score: \(score)")
-                .font(.largeTitle)
-                .bold()
+                VStack(spacing: 22) {
+                    Spacer()
 
-            Text("Time: \(timeRemaining)")
-                .font(.title)
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 70))
+                        .foregroundStyle(.yellow)
+                        .shadow(color: .yellow.opacity(0.8), radius: 18)
 
-            Spacer()
+                    Text("Tap Games")
+                        .font(.system(size: 42, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
 
-            Button(action: {
-                tapButtonPressed()
-            }) {
-                Text("TAP")
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 220, height: 220)
-                    .background(Color.blue)
-                    .clipShape(Circle())
+                    Text("Choose your challenge")
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.7))
+
+                    Spacer()
+
+                    NavigationLink {
+                        TapFrenzyView()
+                    } label: {
+                        ModeButton(title: "Tap Frenzy", subtitle: "Tap as fast as you can", icon: "hand.tap.fill", color: .blue)
+                    }
+
+                    NavigationLink {
+                        LightItUpView()
+                    } label: {
+                        ModeButton(title: "Light It Up", subtitle: "Catch the glowing cards", icon: "lightbulb.fill", color: .orange)
+                    }
+
+                    Spacer()
+                }
+                .padding(24)
             }
-            .disabled(gameOver)
-
-            Spacer()
+            .toolbar(.hidden, for: .navigationBar)
         }
-        .padding()
-        .onReceive(timer) { _ in
-            guard gameStarted && !gameOver else { return }
-
-            if timeRemaining > 0 {
-                timeRemaining -= 1
-            }
-
-            if timeRemaining == 0 {
-                endGame()
-            }
-        }
-        .sheet(isPresented: $gameOver) {
-            GameOverView(
-                score: score,
-                highScore: highScore,
-                playAgain: restartGame
-            )
-        }
-    }
-
-    func tapButtonPressed() {
-        if !gameStarted {
-            gameStarted = true
-        }
-
-        score += 1
-    }
-
-    func endGame() {
-        gameOver = true
-
-        if score > highScore {
-            highScore = score
-            UserDefaults.standard.set(score, forKey: "HighScore")
-        }
-    }
-
-    func restartGame() {
-        score = 0
-        timeRemaining = 10
-        gameStarted = false
-        gameOver = false
     }
 }
 
-struct GameOverView: View {
-    let score: Int
-    let highScore: Int
-    let playAgain: () -> Void
+private struct ModeButton: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
 
     var body: some View {
-        VStack(spacing: 20) {
-
-            Text("GAME OVER")
-                .font(.largeTitle)
-                .bold()
-
-            Text("Final Score: \(score)")
+        HStack(spacing: 18) {
+            Image(systemName: icon)
                 .font(.title)
+                .frame(width: 52, height: 52)
+                .background(color.opacity(0.25))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
 
-            Text("High Score: \(highScore)")
-                .font(.title2)
-
-            Button("Play Again") {
-                playAgain()
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.title2.bold())
+                Text(subtitle).font(.subheadline).opacity(0.7)
             }
-            .padding()
-            .buttonStyle(.borderedProminent)
+
+            Spacer()
+            Image(systemName: "chevron.right").font(.headline)
         }
-        .padding()
+        .foregroundStyle(.white)
+        .padding(18)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(color.opacity(0.6), lineWidth: 1))
     }
+}
+
+#Preview {
+    ContentView()
 }
