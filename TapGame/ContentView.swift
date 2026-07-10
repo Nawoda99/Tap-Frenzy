@@ -41,6 +41,12 @@ struct ContentView: View {
                         ModeButton(title: "Light It Up", subtitle: "Catch the glowing cards", icon: "lightbulb.fill", color: .orange)
                     }
 
+                    NavigationLink {
+                        QuizRushView()
+                    } label: {
+                        ModeButton(title: "Quiz Rush", subtitle: "Ten live trivia questions", icon: "brain.head.profile.fill", color: .purple)
+                    }
+
                     Spacer()
                 }
                 .padding(24)
