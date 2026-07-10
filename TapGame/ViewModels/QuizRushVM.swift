@@ -2,19 +2,9 @@ import Foundation
 import Combine
 
 @MainActor
-final class QuizRushViewModel: ObservableObject {
-    enum ViewState: Equatable {
-        case loading
-        case loaded
-        case failed(String)
-        case finished
-    }
-
-    enum AnswerFeedback: Equatable {
-        case none
-        case correct
-        case wrong
-    }
+final class QuizRushVM: ObservableObject {
+    enum ViewState: Equatable { case loading, loaded, failed(String), finished }
+    enum Feedback: Equatable { case none, correct, wrong }
 
     @Published private(set) var state: ViewState = .loading
     @Published private(set) var questions: [TriviaQuestion] = []
@@ -22,39 +12,27 @@ final class QuizRushViewModel: ObservableObject {
     @Published private(set) var answers: [String] = []
     @Published private(set) var score = 0
     @Published private(set) var streak = 0
-    @Published private(set) var highScore = UserDefaults.standard.integer(forKey: "quizRushHighScore")
-    @Published private(set) var feedback: AnswerFeedback = .none
+    @Published private(set) var feedback: Feedback = .none
     @Published private(set) var selectedAnswer: String?
     @Published private(set) var shakeCount = 0
+    @Published private(set) var highScore = UserDefaults.standard.integer(forKey: "quizRushHighScore")
 
-    private let service: TriviaService
-    private var isAnswerLocked = false
-
-    init(service: TriviaService = TriviaService()) {
-        self.service = service
-    }
+    private let api = TriviaAPI()
+    private var answerLocked = false
 
     var currentQuestion: TriviaQuestion? {
-        guard questions.indices.contains(questionIndex) else { return nil }
-        return questions[questionIndex]
+        questions.indices.contains(questionIndex) ? questions[questionIndex] : nil
     }
-
-    var progressText: String {
-        "\(min(questionIndex + 1, questions.count)) of \(questions.count)"
-    }
+    var progressText: String { "\(min(questionIndex + 1, questions.count)) of \(questions.count)" }
 
     func load() async {
         state = .loading
         score = 0
         streak = 0
         questionIndex = 0
-        feedback = .none
-        selectedAnswer = nil
-        isAnswerLocked = false
-
         do {
-            questions = try await service.fetchQuestions()
-            prepareCurrentQuestion()
+            questions = try await api.fetchQuestions()
+            prepareQuestion()
             state = .loaded
         } catch {
             state = .failed(error.localizedDescription)
@@ -62,10 +40,9 @@ final class QuizRushViewModel: ObservableObject {
     }
 
     func submit(_ answer: String) {
-        guard !isAnswerLocked, let question = currentQuestion else { return }
-        isAnswerLocked = true
+        guard !answerLocked, let question = currentQuestion else { return }
+        answerLocked = true
         selectedAnswer = answer
-
         if answer == question.displayCorrectAnswer {
             streak += 1
             score += 10 + max(0, streak - 1) * 2
@@ -76,7 +53,6 @@ final class QuizRushViewModel: ObservableObject {
             shakeCount += 1
             feedback = .wrong
         }
-
         Task {
             try? await Task.sleep(for: .milliseconds(550))
             advance()
@@ -86,7 +62,7 @@ final class QuizRushViewModel: ObservableObject {
     private func advance() {
         if questionIndex + 1 < questions.count {
             questionIndex += 1
-            prepareCurrentQuestion()
+            prepareQuestion()
         } else {
             highScore = max(highScore, score)
             UserDefaults.standard.set(highScore, forKey: "quizRushHighScore")
@@ -94,10 +70,10 @@ final class QuizRushViewModel: ObservableObject {
         }
     }
 
-    private func prepareCurrentQuestion() {
+    private func prepareQuestion() {
         answers = currentQuestion?.allAnswers ?? []
         feedback = .none
         selectedAnswer = nil
-        isAnswerLocked = false
+        answerLocked = false
     }
 }

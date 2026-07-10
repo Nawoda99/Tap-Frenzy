@@ -42,9 +42,7 @@ private extension String {
                     .characterEncoding: String.Encoding.utf8.rawValue
                 ],
                 documentAttributes: nil
-              ).string else {
-            return self
-        }
+              ).string else { return self }
         return decoded
     }
 }
