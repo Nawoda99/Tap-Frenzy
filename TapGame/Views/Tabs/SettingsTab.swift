@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct SettingsTab: View {
     @EnvironmentObject private var store: SessionStore

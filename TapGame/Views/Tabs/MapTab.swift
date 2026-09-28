@@ -3,43 +3,57 @@ import MapKit
 
 struct MapTab: View {
     @EnvironmentObject private var store: SessionStore
-    @State private var selectedID: UUID?
+    @State private var selectedSession: GameSession?
     @State private var position: MapCameraPosition = .automatic
 
     private var locatedSessions: [GameSession] { store.sessions.filter(\.hasLocation) }
-    private var selectedSession: GameSession? { store.sessions.first { $0.id == selectedID } }
 
     var body: some View {
-        Group {
+        VStack {
             if locatedSessions.isEmpty {
-                ContentUnavailableView(
-                    "No Mapped Games",
-                    systemImage: "map",
-                    description: Text("Play a game with location access enabled to add a pin.")
-                )
+                Spacer()
+                Image(systemName: "map")
+                    .font(.system(size: 52))
+                    .foregroundStyle(.secondary)
+                Text("No Mapped Games")
+                    .font(.title2.bold())
+                Text("Play a game with location access enabled to add a pin.")
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                Spacer()
             } else {
-                Map(position: $position, selection: $selectedID) {
+                Map(position: $position) {
                     ForEach(locatedSessions) { session in
-                        Marker("\(session.mode.title): \(session.score)", systemImage: session.mode.icon, coordinate: session.coordinate)
-                            .tint(.purple)
-                            .tag(session.id)
-                    }
-                }
-                .mapControls { MapCompass(); MapScale(); MapUserLocationButton() }
-                .safeAreaInset(edge: .bottom) {
-                    if let session = selectedSession {
-                        HStack {
-                            Label(session.mode.title, systemImage: session.mode.icon)
-                            Spacer()
-                            Text("Score \(session.score)").bold()
+                        Annotation(session.mode.title, coordinate: session.coordinate) {
+                            Button {
+                                selectedSession = session
+                            } label: {
+                                Image(systemName: session.mode.icon)
+                                    .foregroundStyle(.white)
+                                    .padding(10)
+                                    .background(.purple, in: Circle())
+                                    .shadow(radius: 4)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .padding()
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-                        .padding()
                     }
                 }
+                .mapControls { MapCompass(); MapScaleView(); MapUserLocationButton() }
             }
         }
         .navigationTitle("Game Map")
+        .sheet(item: $selectedSession) { session in
+            VStack(spacing: 18) {
+                Image(systemName: session.mode.icon)
+                    .font(.system(size: 48))
+                    .foregroundStyle(.purple)
+                Text(session.mode.title).font(.title.bold())
+                Text("Score: \(session.score)").font(.title2)
+                Text(session.timestamp, style: .date).foregroundStyle(.secondary)
+            }
+            .padding(30)
+            .presentationDetents([.medium])
+        }
     }
 }
